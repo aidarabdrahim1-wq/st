@@ -1723,11 +1723,15 @@
     document.getElementById('bookingForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      const name    = document.getElementById('fullName').value.trim();
-      const phone   = document.getElementById('phone').value.trim();
+      const name      = document.getElementById('fullName').value.trim();
+      const phone     = document.getElementById('phone').value.trim();
       const serviceEl = document.getElementById('service');
-      const service = serviceEl.options[serviceEl.selectedIndex]?.text || '';
-      const date    = document.getElementById('preferredDate').value;
+      const service   = serviceEl.selectedIndex > 0
+                          ? serviceEl.options[serviceEl.selectedIndex].text
+                          : '';
+      const date      = document.getElementById('preferredDate').value;
+
+      console.log('Форма деректері:', { name, phone, service, date });
 
       // Validation
       const inputs = [document.getElementById('fullName'), document.getElementById('phone'), document.getElementById('service')];
@@ -1740,7 +1744,10 @@
           setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 3000);
         }
       });
-      if (!valid) return;
+      if (!valid) {
+        console.warn('Валидация өтпеді — міндетті өрістер бос');
+        return;
+      }
 
       // Disable button while sending
       const submitBtn = this.querySelector('button[type="submit"]');
@@ -1748,9 +1755,9 @@
       submitBtn.textContent = 'Жіберілуде...';
 
       // Telegram Bot API
-      const BOT_TOKEN = '8626160647:AAGnIgzkURJREPqsL0pZGCrABkLTFuDHNQ4';
-      const CHAT_ID   = '5301833930';
-      const dateStr   = date ? date : 'Белгіленбеген';
+      const token   = '8626160647:AAGnIgzkURJREPqsL0pZGCrABkLTFuDHNQ4';
+      const chatId  = '5301833930';
+      const dateStr = date || 'Белгіленбеген';
 
       const text =
         `🦷 Жаңа жазылу!\n` +
@@ -1759,20 +1766,29 @@
         `🔧 Қызмет: ${service}\n` +
         `📅 Күні: ${dateStr}`;
 
+      const payload = { chat_id: chatId, text: text, parse_mode: 'HTML' };
+      console.log('Telegram-ға жіберілетін деректер:', payload);
+
       try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+          body: JSON.stringify(payload)
         });
+        const result = await response.json();
+        console.log('Telegram жауабы:', result);
+        if (!result.ok) {
+          console.error('Telegram қатесі:', result.description);
+        }
       } catch (err) {
-        console.error('Telegram қатесі:', err);
+        console.error('Fetch қатесі:', err);
       }
 
       // Show success
       document.getElementById('formContainer').style.display = 'none';
-      const succ = document.getElementById('formSuccess');
-      succ.style.display = 'block';
+      document.getElementById('formSuccess').style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '📅 Жазылуды растау';
     });
 
     /* ===== SMOOTH ACTIVE NAV ===== */
