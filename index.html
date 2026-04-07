@@ -1508,7 +1508,7 @@
           <div class="form-success" id="formSuccess">
             <span class="success-icon">✅</span>
             <h3>Рахмет!</h3>
-            <p>Сіздің өтінішіңіз қабылданды. <strong>30 минут ішінде</strong> операторымыз хабарласады және қабылдау уақытын белгілейді.</p>
+            <p>Сізге жақын арада хабарласамыз!</p>
           </div>
         </div>
       </div>
@@ -1720,13 +1720,16 @@
       this.value = formatted;
     });
 
-    document.getElementById('bookingForm').addEventListener('submit', function (e) {
+    document.getElementById('bookingForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      const name = document.getElementById('fullName').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const service = document.getElementById('service').value;
 
-      // Simple validation
+      const name    = document.getElementById('fullName').value.trim();
+      const phone   = document.getElementById('phone').value.trim();
+      const serviceEl = document.getElementById('service');
+      const service = serviceEl.options[serviceEl.selectedIndex]?.text || '';
+      const date    = document.getElementById('preferredDate').value;
+
+      // Validation
       const inputs = [document.getElementById('fullName'), document.getElementById('phone'), document.getElementById('service')];
       let valid = true;
       inputs.forEach(el => {
@@ -1738,6 +1741,33 @@
         }
       });
       if (!valid) return;
+
+      // Disable button while sending
+      const submitBtn = this.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Жіберілуде...';
+
+      // Telegram Bot API
+      const BOT_TOKEN = '8626160647:AAGnIgzkURJREPqsL0pZGCrABkLTFuDHNQ4';
+      const CHAT_ID   = '5301833930';
+      const dateStr   = date ? date : 'Белгіленбеген';
+
+      const text =
+        `🦷 Жаңа жазылу!\n` +
+        `👤 Аты: ${name}\n` +
+        `📞 Телефон: ${phone}\n` +
+        `🔧 Қызмет: ${service}\n` +
+        `📅 Күні: ${dateStr}`;
+
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+        });
+      } catch (err) {
+        console.error('Telegram қатесі:', err);
+      }
 
       // Show success
       document.getElementById('formContainer').style.display = 'none';
